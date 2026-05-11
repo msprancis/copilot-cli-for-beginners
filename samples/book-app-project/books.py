@@ -70,3 +70,45 @@ class BookCollection:
     def find_by_author(self, author: str) -> List[Book]:
         """Find all books by a given author."""
         return [b for b in self.books if b.author.lower() == author.lower()]
+
+    def get_stats(self) -> "BookStats":
+        """Return statistics for the entire collection."""
+        return get_stats(self.books)
+
+
+@dataclass
+class BookStats:
+    total: int
+    read: int
+    unread: int
+    oldest: Optional[Book]
+    newest: Optional[Book]
+
+
+def get_stats(books: List[Book]) -> BookStats:
+    """Return statistics for a list of books.
+
+    Args:
+        books: List of Book objects to analyse.
+
+    Returns:
+        A BookStats dataclass with total, read/unread counts,
+        and the oldest and newest books by publication year.
+        oldest/newest are None when the list is empty.
+    """
+    if not books:
+        return BookStats(total=0, read=0, unread=0, oldest=None, newest=None)
+
+    read_books = [b for b in books if b.read]
+    dated = [b for b in books if b.year > 0]
+
+    oldest = min(dated, key=lambda b: b.year) if dated else None
+    newest = max(dated, key=lambda b: b.year) if dated else None
+
+    return BookStats(
+        total=len(books),
+        read=len(read_books),
+        unread=len(books) - len(read_books),
+        oldest=oldest,
+        newest=newest,
+    )

@@ -19,15 +19,21 @@ def get_user_choice() -> str:
 
 
 def get_book_details() -> tuple[str, str, int]:
-    title = input("Enter book title: ").strip()
-    author = input("Enter author: ").strip()
+    while not (title := input("Enter book title: ").strip()):
+        print("Title cannot be empty. Please try again.")
 
-    year_input = input("Enter publication year: ").strip()
-    try:
-        year = int(year_input)
-    except ValueError:
-        print("Invalid year. Defaulting to 0.")
-        year = 0
+    while not (author := input("Enter author: ").strip()):
+        print("Author cannot be empty. Please try again.")
+
+    while True:
+        year_input = input("Enter publication year (or 0 to skip): ").strip()
+        try:
+            year = int(year_input)
+            if year == 0 or 1 <= year <= 2100:
+                break
+            print("Please enter a year between 1 and 2100, or 0 to skip.")
+        except ValueError:
+            print("Invalid year. Please enter a number.")
 
     return title, author, year
 

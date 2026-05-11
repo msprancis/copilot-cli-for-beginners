@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass, asdict
 from typing import List, Optional
 
@@ -91,6 +92,43 @@ class Book:
     read: bool = False
 
 
+@contextmanager
+def _atomic_write(path: str):
+    """Context manager for atomic file writes.
+
+    Writes to a temporary file in the same directory as ``path``, then
+    atomically renames it over the target. If anything goes wrong the
+    temp file is deleted and a :class:`BookStorageError` is raised.
+
+    Args:
+        path (str): The destination file path.
+
+    Yields:
+        IO: A writable file-like object. Write your content to this;
+            do not close it manually.
+
+    Raises:
+        BookStorageError: If the temp file cannot be created, written,
+            or renamed into place.
+
+    Example::
+
+        with _atomic_write("data.json") as f:
+            json.dump(data, f, indent=2)
+    """
+    dir_name = os.path.dirname(os.path.abspath(path))
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False, suffix=".tmp") as tmp:
+            tmp_path = tmp.name
+            yield tmp
+        os.replace(tmp_path, path)
+    except OSError as e:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise BookStorageError(f"Failed to save books to {path}: {e}") from e
+
+
 class BookCollection:
     """Manages a persistent collection of books backed by a JSON file.
 
@@ -157,26 +195,17 @@ class BookCollection:
         call this directly.
 
         Raises:
-            BookStorageError: If the temporary file cannot be created,
-                written, or renamed. The temp file is cleaned up before
-                the exception is re-raised.
+            BookStorageError: If the write fails. Raised by the
+                :func:`_atomic_write` context manager, which cleans up
+                the temp file before propagating.
 
         Example::
 
             collection.books.append(Book("Manual", "Author", 2024))
             collection.save_books()  # flush to disk
         """
-        dir_name = os.path.dirname(os.path.abspath(DATA_FILE))
-        tmp_path = None
-        try:
-            with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False, suffix=".tmp") as tmp:
-                json.dump([asdict(b) for b in self.books], tmp, indent=2)
-                tmp_path = tmp.name
-            os.replace(tmp_path, DATA_FILE)
-        except OSError as e:
-            if tmp_path and os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-            raise BookStorageError(f"Failed to save books to {DATA_FILE}: {e}") from e
+        with _atomic_write(DATA_FILE) as f:
+            json.dump([asdict(b) for b in self.books], f, indent=2)
 
     def add_book(self, title: str, author: str, year: int) -> "Book":
         """Add a new book to the collection and save it to disk.

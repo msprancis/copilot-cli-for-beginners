@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 import books
+import book_app
 from books import Book, BookCollection, BookStats, get_stats
 
 
@@ -13,6 +14,8 @@ def use_temp_data_file(tmp_path, monkeypatch):
     temp_file = tmp_path / "data.json"
     temp_file.write_text("[]")
     monkeypatch.setattr(books, "DATA_FILE", str(temp_file))
+    # Reset the global collection in book_app so it picks up the temp file
+    monkeypatch.setattr(book_app, "collection", BookCollection())
 
 
 def test_add_book():
@@ -163,3 +166,26 @@ class TestBookStats:
         stats = get_stats(books_list)
         assert stats.oldest.year == expected_oldest
         assert stats.newest.year == expected_newest
+
+
+class TestHandleRead:
+    """Tests for the handle_read() CLI command handler."""
+
+    def test_handle_read_marks_existing_book(self, monkeypatch, capsys):
+        book_app.collection.add_book("Dune", "Frank Herbert", 1965)
+        monkeypatch.setattr("builtins.input", lambda _: "Dune")
+
+        book_app.handle_read()
+
+        book = book_app.collection.find_book_by_title("Dune")
+        assert book.read is True
+        captured = capsys.readouterr()
+        assert "marked as read" in captured.out
+
+    def test_handle_read_reports_not_found(self, monkeypatch, capsys):
+        monkeypatch.setattr("builtins.input", lambda _: "Nonexistent Book")
+
+        book_app.handle_read()
+
+        captured = capsys.readouterr()
+        assert "not found" in captured.out

@@ -1,4 +1,6 @@
 import json
+import os
+import tempfile
 from dataclasses import dataclass, asdict
 from typing import List, Optional
 
@@ -31,9 +33,15 @@ class BookCollection:
             self.books = []
 
     def save_books(self):
-        """Save the current book collection to JSON."""
-        with open(DATA_FILE, "w") as f:
-            json.dump([asdict(b) for b in self.books], f, indent=2)
+        """Save the current book collection to JSON using an atomic write."""
+        dir_name = os.path.dirname(os.path.abspath(DATA_FILE))
+        try:
+            with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False, suffix=".tmp") as tmp:
+                json.dump([asdict(b) for b in self.books], tmp, indent=2)
+                tmp_path = tmp.name
+            os.replace(tmp_path, DATA_FILE)
+        except OSError as e:
+            raise IOError(f"Failed to save books to {DATA_FILE}: {e}") from e
 
     def add_book(self, title: str, author: str, year: int) -> Book:
         book = Book(title=title, author=author, year=year)

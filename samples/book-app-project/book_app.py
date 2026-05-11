@@ -1,5 +1,5 @@
 import sys
-from books import BookCollection
+from books import BookCollection, BookNotFoundError, BookStorageError, BookValidationError
 from utils import print_books
 
 
@@ -23,29 +23,36 @@ def handle_add():
         year = int(year_str) if year_str else 0
         collection.add_book(title, author, year)
         print("\nBook added successfully.\n")
-    except ValueError as e:
+    except BookValidationError as e:
         print(f"\nError: {e}\n")
+    except BookStorageError as e:
+        print(f"\nCould not save book: {e}\n")
 
 
 def handle_remove():
     print("\nRemove a Book\n")
 
     title = input("Enter the title of the book to remove: ").strip()
-    collection.remove_book(title)
-
-    print("\nBook removed if it existed.\n")
+    try:
+        collection.remove_book(title)
+        print(f'\n"{title}" removed successfully.\n')
+    except BookNotFoundError:
+        print(f'\nBook "{title}" not found.\n')
+    except BookStorageError as e:
+        print(f"\nCould not save changes: {e}\n")
 
 
 def handle_read():
     print("\nMark a Book as Read\n")
 
     title = input("Enter the title of the book to mark as read: ").strip()
-    found = collection.mark_as_read(title)
-
-    if found:
+    try:
+        collection.mark_as_read(title)
         print(f'\n"{title}" marked as read.\n')
-    else:
+    except BookNotFoundError:
         print(f'\nBook "{title}" not found.\n')
+    except BookStorageError as e:
+        print(f"\nCould not save changes: {e}\n")
 
 
 def handle_find():

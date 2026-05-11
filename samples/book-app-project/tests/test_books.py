@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
 import books
 import book_app
-from books import Book, BookCollection, BookStats, get_stats
+from books import Book, BookCollection, BookStats, BookNotFoundError, get_stats
 
 
 @pytest.fixture(autouse=True)
@@ -32,28 +32,26 @@ def test_add_book():
 def test_mark_book_as_read():
     collection = BookCollection()
     collection.add_book("Dune", "Frank Herbert", 1965)
-    result = collection.mark_as_read("Dune")
-    assert result is True
+    collection.mark_as_read("Dune")
     book = collection.find_book_by_title("Dune")
     assert book.read is True
 
 def test_mark_book_as_read_invalid():
     collection = BookCollection()
-    result = collection.mark_as_read("Nonexistent Book")
-    assert result is False
+    with pytest.raises(BookNotFoundError):
+        collection.mark_as_read("Nonexistent Book")
 
 def test_remove_book():
     collection = BookCollection()
     collection.add_book("The Hobbit", "J.R.R. Tolkien", 1937)
-    result = collection.remove_book("The Hobbit")
-    assert result is True
+    collection.remove_book("The Hobbit")
     book = collection.find_book_by_title("The Hobbit")
     assert book is None
 
 def test_remove_book_invalid():
     collection = BookCollection()
-    result = collection.remove_book("Nonexistent Book")
-    assert result is False
+    with pytest.raises(BookNotFoundError):
+        collection.remove_book("Nonexistent Book")
 
 
 @pytest.fixture

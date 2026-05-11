@@ -7,6 +7,22 @@ from typing import List, Optional
 DATA_FILE = "data.json"
 
 
+class BookAppError(Exception):
+    """Base exception for all book-app errors."""
+
+
+class BookStorageError(BookAppError):
+    """Raised when reading or writing the data file fails."""
+
+
+class BookValidationError(BookAppError):
+    """Raised when book data fails validation."""
+
+
+class BookNotFoundError(BookAppError):
+    """Raised when a requested book does not exist in the collection."""
+
+
 @dataclass
 class Book:
     title: str
@@ -28,25 +44,41 @@ class BookCollection:
                 self.books = [Book(**b) for b in data]
         except FileNotFoundError:
             self.books = []
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError, KeyError):
             print("Warning: data.json is corrupted. Starting with empty collection.")
+            self.books = []
+        except OSError as e:
+            print(f"Warning: Could not read {DATA_FILE}: {e}. Starting with empty collection.")
             self.books = []
 
     def save_books(self):
         """Save the current book collection to JSON using an atomic write."""
         dir_name = os.path.dirname(os.path.abspath(DATA_FILE))
+        tmp_path = None
         try:
             with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False, suffix=".tmp") as tmp:
                 json.dump([asdict(b) for b in self.books], tmp, indent=2)
                 tmp_path = tmp.name
             os.replace(tmp_path, DATA_FILE)
         except OSError as e:
-            raise IOError(f"Failed to save books to {DATA_FILE}: {e}") from e
+            if tmp_path and os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            raise BookStorageError(f"Failed to save books to {DATA_FILE}: {e}") from e
 
-    def add_book(self, title: str, author: str, year: int) -> Book:
+    def add_book(self, title: str, author: str, year: int) -> "Book":
+        if not title or not title.strip():
+            raise BookValidationError("Title cannot be empty.")
+        if not author or not author.strip():
+            raise BookValidationError("Author cannot be empty.")
+        if year != 0 and not (1 <= year <= 2100):
+            raise BookValidationError(f"Year must be between 1 and 2100, or 0 to skip (got {year}).")
         book = Book(title=title, author=author, year=year)
         self.books.append(book)
-        self.save_books()
+        try:
+            self.save_books()
+        except BookStorageError:
+            self.books.remove(book)
+            raise
         return book
 
     def list_books(self) -> List[Book]:
@@ -58,22 +90,28 @@ class BookCollection:
                 return book
         return None
 
-    def mark_as_read(self, title: str) -> bool:
+    def mark_as_read(self, title: str) -> None:
         book = self.find_book_by_title(title)
-        if book:
-            book.read = True
+        if not book:
+            raise BookNotFoundError(f"No book found with title '{title}'.")
+        book.read = True
+        try:
             self.save_books()
-            return True
-        return False
+        except BookStorageError:
+            book.read = False
+            raise
 
-    def remove_book(self, title: str) -> bool:
+    def remove_book(self, title: str) -> None:
         """Remove a book by title."""
         book = self.find_book_by_title(title)
-        if book:
-            self.books.remove(book)
+        if not book:
+            raise BookNotFoundError(f"No book found with title '{title}'.")
+        self.books.remove(book)
+        try:
             self.save_books()
-            return True
-        return False
+        except BookStorageError:
+            self.books.append(book)
+            raise
 
     def find_by_author(self, author: str) -> List[Book]:
         """Find all books by a given author."""

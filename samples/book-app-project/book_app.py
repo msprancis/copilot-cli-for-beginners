@@ -76,20 +76,20 @@ def main():
         show_help()
         return
 
-    command = sys.argv[1].lower()
+    commands = {
+        "list": handle_list,
+        "add": handle_add,
+        "remove": handle_remove,
+        "read": handle_read,
+        "find": handle_find,
+        "help": show_help,
+    }
 
-    if command == "list":
-        handle_list()
-    elif command == "add":
-        handle_add()
-    elif command == "remove":
-        handle_remove()
-    elif command == "read":
-        handle_read()
-    elif command == "find":
-        handle_find()
-    elif command == "help":
-        show_help()
+    command = sys.argv[1].lower()
+    handler = commands.get(command)
+
+    if handler:
+        handler()
     else:
         print("Unknown command.\n")
         show_help()

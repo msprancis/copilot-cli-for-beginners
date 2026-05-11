@@ -187,3 +187,37 @@ class TestHandleRead:
 
         captured = capsys.readouterr()
         assert "not found" in captured.out
+
+
+class TestHandleAdd:
+    """Tests for the handle_add() CLI command handler."""
+
+    def test_handle_add_success(self, monkeypatch, capsys):
+        inputs = iter(["1984", "George Orwell", "1949"])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+
+        book_app.handle_add()
+
+        captured = capsys.readouterr()
+        assert "Book added successfully" in captured.out
+        assert book_app.collection.find_book_by_title("1984") is not None
+
+    def test_handle_add_invalid_year_string(self, monkeypatch, capsys):
+        inputs = iter(["Dune", "Frank Herbert", "abc"])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+
+        book_app.handle_add()
+
+        captured = capsys.readouterr()
+        assert "Invalid year" in captured.out
+        assert book_app.collection.find_book_by_title("Dune") is None
+
+    def test_handle_add_out_of_range_year(self, monkeypatch, capsys):
+        inputs = iter(["Dune", "Frank Herbert", "9999"])
+        monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+
+        book_app.handle_add()
+
+        captured = capsys.readouterr()
+        assert "Error" in captured.out
+        assert book_app.collection.find_book_by_title("Dune") is None

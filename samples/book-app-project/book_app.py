@@ -21,6 +21,11 @@ def handle_add():
 
     try:
         year = int(year_str) if year_str else 0
+    except ValueError:
+        print("\nInvalid year. Please enter a number.\n")
+        return
+
+    try:
         collection.add_book(title, author, year)
         print("\nBook added successfully.\n")
     except BookValidationError as e:

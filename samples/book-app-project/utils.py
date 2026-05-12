@@ -95,13 +95,19 @@ def print_books_by_year_range(books: list[Book], start_year: int, end_year: int)
         print(f"{index}. {book.title} by {book.author} ({book.year}) - {status}")
 
 
-def print_books(books: list[Book]) -> None:
-    """Display books in a user-friendly format."""
+def print_books(books: list[Book], header: str = "Your Book Collection") -> None:
+    """Display books in a user-friendly format.
+
+    Args:
+        books (list[Book]): The books to display.
+        header (str): Heading printed above the list. Defaults to
+            ``"Your Book Collection"``.
+    """
     if not books:
         print("No books found.")
         return
 
-    print("\nYour Book Collection:\n")
+    print(f"\n{header}:\n")
     for index, book in enumerate(books, start=1):
         status = "✅ Read" if book.read else "📖 Unread"
         print(f"{index}. {book.title} by {book.author} ({book.year}) - {status}")

@@ -363,6 +363,21 @@ class BookCollection:
             self.books.append(book)
             raise
 
+    def list_unread(self) -> List["Book"]:
+        """Return all books that have not been marked as read.
+
+        Returns:
+            List[Book]: Books where ``read`` is ``False``.
+                Returns an empty list if all books have been read.
+
+        Example::
+
+            collection.add_book("Dune", "Frank Herbert", 1965)
+            unread = collection.list_unread()
+            print(len(unread))  # 1
+        """
+        return [b for b in self.books if not b.read]
+
     def find_by_author(self, author: str) -> List["Book"]:
         """Return all books by a given author.
 

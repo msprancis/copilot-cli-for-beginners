@@ -60,6 +60,14 @@ def handle_read():
         print(f"\nCould not save changes: {e}\n")
 
 
+def handle_list_unread():
+    books = collection.list_unread()
+    if not books:
+        print("\nNo unread books in your collection.\n")
+    else:
+        print_books(books, header="Your Unread Books")
+
+
 def handle_find():
     print("\nFind Books by Author\n")
 
@@ -75,6 +83,7 @@ Book Collection Helper
 
 Commands:
   list     - Show all books
+  unread   - Show only unread books
   add      - Add a new book
   remove   - Remove a book by title
   read     - Mark a book as read
@@ -90,6 +99,7 @@ def main():
 
     commands = {
         "list": handle_list,
+        "unread": handle_list_unread,
         "add": handle_add,
         "remove": handle_remove,
         "read": handle_read,

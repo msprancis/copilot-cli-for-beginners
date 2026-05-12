@@ -166,6 +166,49 @@ class TestBookStats:
         assert stats.newest.year == expected_newest
 
 
+class TestListUnread:
+    """Tests for BookCollection.list_unread() and handle_list_unread()."""
+
+    def test_returns_only_unread_books(self):
+        collection = BookCollection()
+        collection.add_book("1984", "George Orwell", 1949)
+        collection.add_book("Dune", "Frank Herbert", 1965)
+        collection.mark_as_read("1984")
+        unread = collection.list_unread()
+        assert len(unread) == 1
+        assert unread[0].title == "Dune"
+
+    def test_empty_when_all_read(self):
+        collection = BookCollection()
+        collection.add_book("1984", "George Orwell", 1949)
+        collection.mark_as_read("1984")
+        assert collection.list_unread() == []
+
+    def test_all_returned_when_none_read(self):
+        collection = BookCollection()
+        collection.add_book("1984", "George Orwell", 1949)
+        collection.add_book("Dune", "Frank Herbert", 1965)
+        assert len(collection.list_unread()) == 2
+
+    def test_empty_collection(self):
+        collection = BookCollection()
+        assert collection.list_unread() == []
+
+    def test_handle_list_unread_prints_books(self, capsys):
+        book_app.collection.add_book("Dune", "Frank Herbert", 1965)
+        book_app.handle_list_unread()
+        captured = capsys.readouterr()
+        assert "Dune" in captured.out
+        assert "Your Unread Books" in captured.out
+
+    def test_handle_list_unread_empty_message(self, capsys):
+        book_app.collection.add_book("1984", "George Orwell", 1949)
+        book_app.collection.mark_as_read("1984")
+        book_app.handle_list_unread()
+        captured = capsys.readouterr()
+        assert "No unread books" in captured.out
+
+
 class TestHandleRead:
     """Tests for the handle_read() CLI command handler."""
 
